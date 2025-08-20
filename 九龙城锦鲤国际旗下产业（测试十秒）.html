@@ -1,0 +1,893 @@
+<html lang="zh-CN"><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>九龙锦鲤国际 - 价格浮动系统</title>
+    <!-- 引入外部资源 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    
+    <!-- 配置Tailwind自定义颜色 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#E67E22', // 锦鲤橙色
+                        secondary: '#D35400',
+                        success: '#10B981', // 上涨绿色
+                        danger: '#EF4444',  // 下跌红色
+                        neutral: '#1F2937'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .price-up {
+                animation: pulse-up 1.5s ease-in-out;
+            }
+            .price-down {
+                animation: pulse-down 1.5s ease-in-out;
+            }
+            @keyframes pulse-up {
+                0%, 100% { color: #10B981; }
+                50% { color: #059669; transform: scale(1.05); }
+            }
+            @keyframes pulse-down {
+                0%, 100% { color: #EF4444; }
+                50% { color: #DC2626; transform: scale(1.05); }
+            }
+            .card-hover {
+                transition: all 0.3s ease;
+            }
+            .card-hover:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 12px 20px -10px rgba(230, 126, 34, 0.15);
+            }
+            .live-indicator {
+                animation: blink 2s infinite;
+            }
+            @keyframes blink {
+                0%, 100% { opacity: 1; }
+                50% { opacity: 0.4; }
+            }
+            .update-toast {
+                animation: slide-in 0.5s forwards, slide-out 0.5s forwards 3s;
+            }
+            @keyframes slide-in {
+                from { transform: translateX(100%); }
+                to { transform: translateX(0); }
+            }
+            @keyframes slide-out {
+                from { transform: translateX(0); }
+                to { transform: translateX(100%); }
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans text-gray-800">
+    <!-- 顶部导航栏 -->
+    <header class="bg-white shadow-sm sticky top-0 z-50 transition-all duration-300" id="main-header">
+        <div class="container mx-auto px-4 py-4 flex flex-wrap justify-between items-center">
+            <div class="flex items-center">
+                <i class="fa fa-fish text-primary text-2xl mr-3"></i>
+                <h1 class="text-xl md:text-2xl font-bold text-neutral">九龙城锦鲤国际</h1>
+            </div>
+            <div class="flex items-center mt-3 sm:mt-0">
+                <div class="flex items-center text-sm text-gray-600 mr-6">
+                    <span class="inline-block w-2 h-2 rounded-full bg-success live-indicator mr-2"></span>
+                    <span>价格自动更新中</span>
+                </div>
+                <div class="flex items-center text-sm text-gray-600 mr-6">
+                    <i class="fa fa-clock-o text-primary mr-2"></i>
+                    <span id="beijing-time">2025-08-20 00:00:00</span>
+                </div>
+                <nav class="hidden md:flex space-x-6 text-sm">
+                    <a href="#" class="text-primary font-medium">价格表</a>
+                    <a href="#" class="text-gray-600 hover:text-primary transition-colors">产品介绍</a>
+                    <a href="#" class="text-gray-600 hover:text-primary transition-colors">关于我们</a>
+                    <a href="#" class="text-gray-600 hover:text-primary transition-colors">联系客服</a>
+                </nav>
+                <button class="md:hidden text-gray-600">
+                    <i class="fa fa-bars text-xl"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8 max-w-7xl">
+        <!-- 页面标题区域 -->
+        <div class="text-center mb-12">
+            <h2 class="text-3xl md:text-4xl font-bold text-neutral mb-4">产品价格浮动表</h2>
+            <p class="text-gray-600 max-w-2xl mx-auto mb-8">锦鲤国际旗下产品价格动态，系统12小时自动更新</p>
+            
+            <div class="inline-flex items-center bg-primary/10 text-primary px-5 py-2.5 rounded-full text-sm">
+                <i class="fa fa-clock-o mr-2"></i>
+                <span>下次自动更新: <span id="next-update" class="font-semibold">12:00:00</span></span>
+            </div>
+        </div>
+        
+        <!-- 上次更新信息 -->
+        <div class="text-right text-gray-500 text-sm mb-8">
+            上次更新时间: <span id="last-update" class="font-medium">2025-08-20 00:00:00</span>
+        </div>
+        
+        <!-- 葡萄园产业 -->
+        <section class="mb-16">
+            <div class="flex items-center mb-6">
+                <div class="w-14 h-14 rounded-full bg-primary/20 flex items-center justify-center mr-4">
+                    <i class="fa fa-leaf text-primary text-2xl"></i>
+                </div>
+                <h3 class="text-2xl font-bold text-neutral">葡萄园产业</h3>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- 葡萄 -->
+                <div class="bg-white rounded-xl shadow-md overflow-hidden card-hover border border-gray-100">
+                    <div class="md:flex">
+                        <div class="md:w-1/3 bg-gradient-to-br from-primary/5 to-primary/10 p-6 flex items-center justify-center">
+                            <i class="fa fa-grape text-5xl text-primary"></i>
+                        </div>
+                        <div class="md:w-2/3 p-6">
+                            <div class="flex justify-between items-start mb-5">
+                                <div>
+                                    <h4 class="text-xl font-semibold text-neutral">葡萄回收价格</h4>
+                                    <p class="text-gray-500 text-sm mt-1"></p>
+                                </div>
+                                <span class="bg-primary/10 text-primary px-3 py-1 rounded-full text-sm font-medium">
+                                    当季产品
+                                </span>
+                            </div>
+                            
+                            <div class="flex items-end mb-5">
+                                <span class="text-3xl font-bold text-neutral" id="grape-price">745</span>
+                                <span class="text-gray-500 ml-1 mb-1">美元/个</span>
+                                <span class="ml-4 text-sm font-medium" id="grape-change">
+                                    <i class="fa fa-caret-up text-success"></i> 1.5%
+                                </span>
+                            </div>
+                            
+                            <div class="h-28 border-t border-gray-100 pt-4">
+                                <canvas id="grape-chart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 葡萄酒 -->
+                <div class="bg-white rounded-xl shadow-md overflow-hidden card-hover border border-gray-100">
+                    <div class="md:flex">
+                        <div class="md:w-1/3 bg-gradient-to-br from-primary/5 to-primary/10 p-6 flex items-center justify-center">
+                            <i class="fa fa-glass text-5xl text-primary"></i>
+                        </div>
+                        <div class="md:w-2/3 p-6">
+                            <div class="flex justify-between items-start mb-5">
+                                <div>
+                                    <h4 class="text-xl font-semibold text-neutral">葡萄酒回收价格</h4>
+                                    <p class="text-gray-500 text-sm mt-1"></p>
+                                </div>
+                                <span class="bg-primary/10 text-primary px-3 py-1 rounded-full text-sm font-medium">
+                                    畅销产品
+                                </span>
+                            </div>
+                            
+                            <div class="flex items-end mb-5">
+                                <span class="text-3xl font-bold text-neutral" id="wine-price">1560</span>
+                                <span class="text-gray-500 ml-1 mb-1">美元/瓶</span>
+                                <span class="ml-4 text-sm font-medium" id="wine-change">
+                                    <i class="fa fa-caret-down text-danger"></i> 0.6%
+                                </span>
+                            </div>
+                            
+                            <div class="h-28 border-t border-gray-100 pt-4">
+                                <canvas id="wine-chart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- 餐饮产业 -->
+        <section class="mb-16">
+            <div class="flex items-center mb-6">
+                <div class="w-14 h-14 rounded-full bg-primary/20 flex items-center justify-center mr-4">
+                    <i class="fa fa-cutlery text-primary text-2xl"></i>
+                </div>
+                <h3 class="text-2xl font-bold text-neutral">餐饮产业（因未获得营业许可，暂不对外销售）</h3>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- 饥饿类 -->
+                <div class="bg-white rounded-xl shadow-md overflow-hidden card-hover border border-gray-100">
+                    <div class="md:flex">
+                        <div class="md:w-1/3 bg-gradient-to-br from-primary/5 to-primary/10 p-6 flex items-center justify-center">
+                            <i class="fa fa-cutlery text-5xl text-primary"></i>
+                        </div>
+                        <div class="md:w-2/3 p-6">
+                            <div class="flex justify-between items-start mb-5">
+                                <div>
+                                    <h4 class="text-xl font-semibold text-neutral">回复饥饿类产品</h4>
+                                    <p class="text-gray-500 text-sm mt-1"></p>
+                                </div>
+                                <span class="bg-primary/10 text-primary px-3 py-1 rounded-full text-sm font-medium">
+                                    人气推荐
+                                </span>
+                            </div>
+                            
+                            <div class="flex items-end mb-5">
+                                <span class="text-3xl font-bold text-neutral" id="hunger-price">2200</span>
+                                <span class="text-gray-500 ml-1 mb-1">美元/个</span>
+                                <span class="ml-4 text-sm font-medium" id="hunger-change">
+                                    <i class="fa fa-caret-up text-success"></i> 2.1%
+                                </span>
+                            </div>
+                            
+                            <div class="h-28 border-t border-gray-100 pt-4">
+                                <canvas id="hunger-chart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 饥渴类 -->
+                <div class="bg-white rounded-xl shadow-md overflow-hidden card-hover border border-gray-100">
+                    <div class="md:flex">
+                        <div class="md:w-1/3 bg-gradient-to-br from-primary/5 to-primary/10 p-6 flex items-center justify-center">
+                            <i class="fa fa-glass text-5xl text-primary"></i>
+                        </div>
+                        <div class="md:w-2/3 p-6">
+                            <div class="flex justify-between items-start mb-5">
+                                <div>
+                                    <h4 class="text-xl font-semibold text-neutral">回复饥渴类产品</h4>
+                                    <p class="text-gray-500 text-sm mt-1"></p>
+                                </div>
+                                <span class="bg-primary/10 text-primary px-3 py-1 rounded-full text-sm font-medium">
+                                    新品上市
+                                </span>
+                            </div>
+                            
+                            <div class="flex items-end mb-5">
+                                <span class="text-3xl font-bold text-neutral" id="thirst-price">1850</span>
+                                <span class="text-gray-500 ml-1 mb-1">美元/个</span>
+                                <span class="ml-4 text-sm font-medium" id="thirst-change">
+                                    <i class="fa fa-caret-down text-danger"></i> 1.3%
+                                </span>
+                            </div>
+                            
+                            <div class="h-28 border-t border-gray-100 pt-4">
+                                <canvas id="thirst-chart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- 价格趋势与分析 -->
+        <section class="mb-16 bg-white rounded-xl shadow-sm p-6 md:p-8 border border-gray-100">
+            <h3 class="text-xl font-bold text-neutral mb-6 flex items-center">
+                <i class="fa fa-line-chart text-primary mr-3"></i>价格趋势分析
+            </h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div class="p-4 bg-gray-50 rounded-lg">
+                    <h4 class="text-sm font-medium text-gray-700 mb-3">葡萄园产业回收价格趋势</h4>
+                    <div class="h-64">
+                        <canvas id="vineyard-trend-chart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="p-4 bg-gray-50 rounded-lg">
+                    <h4 class="text-sm font-medium text-gray-700 mb-3">餐饮产业售卖价格趋势</h4>
+                    <div class="h-64">
+                        <canvas id="food-trend-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="text-sm text-gray-600 bg-gray-50 p-4 rounded-lg">
+                <p class="mb-2"><i class="fa fa-info-circle text-primary mr-2"></i>价格波动分析：葡萄园产业近期整体呈上升趋势，其中葡萄价格涨幅较为明显；餐饮产业中饥饿类产品需求稳定增长，价格持续走高。</p>
+                <p><i class="fa fa-lightbulb-o text-primary mr-2"></i>市场建议：预计未来两周葡萄收购价格将持续小幅上涨，建议有售卖计划的客户提前售卖。</p>
+            </div>
+        </section>
+        
+        <!-- 系统状态区域 -->
+        <section class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 mb-16">
+            <h3 class="text-lg font-semibold text-neutral mb-5 flex items-center">
+                <i class="fa fa-cog text-primary mr-2"></i>系统状态
+            </h3>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="flex items-center p-4 bg-gray-50 rounded-lg">
+                    <div class="w-12 h-12 rounded-full bg-success/20 flex items-center justify-center mr-4">
+                        <i class="fa fa-check text-success text-xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-neutral">服务状态</p>
+                        <p class="text-xs text-gray-500">正常运行中</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center p-4 bg-gray-50 rounded-lg">
+                    <div class="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center mr-4">
+                        <i class="fa fa-refresh text-primary text-xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-neutral">更新模式</p>
+                        <p class="text-xs text-gray-500">12小时自动更新</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center p-4 bg-gray-50 rounded-lg">
+                    <div class="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center mr-4">
+                        <i class="fa fa-database text-primary text-xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-neutral">数据同步</p>
+                        <p class="text-xs text-gray-500">实时同步完成</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center p-4 bg-gray-50 rounded-lg">
+                    <div class="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center mr-4">
+                        <i class="fa fa-shield text-primary text-xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-neutral">系统安全</p>
+                        <p class="text-xs text-gray-500">加密传输保障</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+    
+    <!-- 页脚 -->
+    <footer class="bg-white border-t border-gray-200 py-8">
+        <div class="container mx-auto px-4 max-w-7xl">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+                <div>
+                    <div class="flex items-center mb-4">
+                        <i class="fa fa-fish text-primary text-xl mr-2"></i>
+                        <h3 class="text-lg font-bold text-neutral">锦鲤国际</h3>
+                    </div>
+                    <p class="text-sm text-gray-500">专注于高品质产品供应与服务，为全服客户提供优质体验。</p>
+                </div>
+                
+                <div>
+                    <h4 class="text-sm font-semibold text-neutral uppercase mb-4">快速链接</h4>
+                    <ul class="space-y-2 text-sm text-gray-500">
+                        <li><a href="#" class="hover:text-primary transition-colors">首页</a></li>
+                        <li><a href="#" class="hover:text-primary transition-colors">价格表</a></li>
+                        <li><a href="#" class="hover:text-primary transition-colors">产品目录</a></li>
+                        <li><a href="#" class="hover:text-primary transition-colors">关于我们</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="text-sm font-semibold text-neutral uppercase mb-4">联系我们</h4>
+                    <ul class="space-y-2 text-sm text-gray-500">
+                        <li class="flex items-start">
+                            <i class="fa fa-phone text-primary mt-1 mr-2"></i>
+                            <span>520-329-4330</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fa fa-envelope text-primary mt-1 mr-2"></i>
+                            <span>info@jinliguoji.com</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fa fa-map-marker text-primary mt-1 mr-2"></i>
+                            <span>九龙城锦鲤国际</span>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4 class="text-sm font-semibold text-neutral uppercase mb-4">关注我们</h4>
+                    <div class="flex space-x-4 mb-4">
+                        <a href="#" class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary hover:bg-primary hover:text-white transition-colors">
+                            <i class="fa fa-facebook"></i>
+                        </a>
+                        <a href="#" class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary hover:bg-primary hover:text-white transition-colors">
+                            <i class="fa fa-twitter"></i>
+                        </a>
+                        <a href="#" class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary hover:bg-primary hover:text-white transition-colors">
+                            <i class="fa fa-instagram"></i>
+                        </a>
+                        <a href="#" class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary hover:bg-primary hover:text-white transition-colors">
+                            <i class="fa fa-linkedin"></i>
+                        </a>
+                    </div>
+                    <p class="text-sm text-gray-500">订阅我们的价格更新通知</p>
+                    <div class="mt-2 flex">
+                        <input type="email" placeholder="您的邮箱地址" class="px-3 py-2 text-sm border border-gray-300 rounded-l-lg focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary flex-1">
+                        <button class="bg-primary text-white px-4 py-2 text-sm rounded-r-lg hover:bg-secondary transition-colors">
+                            订阅
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="border-t border-gray-200 pt-6 text-center text-gray-500 text-sm">
+                <p>© 2025 锦鲤国际 版权所有</p>
+                <p class="mt-2">官网: www.jinliguoji.com</p>
+                <p class="mt-1">ICP备案号: 九龙ICP备12345678号</p>
+            </div>
+        </div>
+    </footer>
+    
+    <!-- 价格更新通知 -->
+    <div id="update-notification" class="fixed top-20 right-4 bg-primary text-white px-4 py-2 rounded-lg shadow-lg z-50 transform translate-x-full">
+        <i class="fa fa-refresh mr-2"></i>
+        <span>价格已自动更新</span>
+    </div>
+    
+    <!-- 引入Chart.js用于图表展示 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    
+    <script>
+        // 产品价格历史数据存储
+        const priceHistory = {
+            grape: [],      // 葡萄
+            wine: [],       // 葡萄酒
+            hunger: [],     // 饥饿类
+            thirst: []      // 饥渴类
+        };
+        
+        // 价格区间配置（美元）
+        const priceRanges = {
+            grape: { min: 650, max: 800 },
+            wine: { min: 1400, max: 1600 },
+            hunger: { min: 1800, max: 2300 },
+            thirst: { min: 1500, max: 2000 }
+        };
+        
+        // 从本地存储加载数据
+        function loadFromLocalStorage() {
+            const savedData = localStorage.getItem('priceData');
+            if (savedData) {
+                const data = JSON.parse(savedData);
+                // 恢复价格历史数据
+                for (const type in priceHistory) {
+                    if (data.priceHistory[type]) {
+                        priceHistory[type] = data.priceHistory[type];
+                    }
+                }
+                // 恢复上次更新时间
+                if (data.lastUpdate) {
+                    document.getElementById('last-update').textContent = data.lastUpdate;
+                }
+                return true;
+            }
+            return false;
+        }
+        
+        // 保存数据到本地存储
+        function saveToLocalStorage() {
+            const data = {
+                priceHistory: priceHistory,
+                lastUpdate: document.getElementById('last-update').textContent
+            };
+            localStorage.setItem('priceData', JSON.stringify(data));
+        }
+        
+        // 更新北京时间显示
+        function updateBeijingTime() {
+            const now = new Date();
+            // 格式化显示为YYYY-MM-DD HH:MM:SS
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            
+            const formattedTime = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+            document.getElementById('beijing-time').textContent = formattedTime;
+        }
+        
+        // 生成初始价格
+        function generateInitialPrice(type) {
+            const range = priceRanges[type];
+            return Math.floor(Math.random() * (range.max - range.min + 1)) + range.min;
+        }
+        
+        // 生成价格历史数据（12个数据点）
+        function generatePriceHistory(type) {
+            const history = [];
+            let price = generateInitialPrice(type);
+            
+            for (let i = 0; i < 12; i++) {
+                // 生成-1.5%到1.5%的随机波动
+                const changePercent = (Math.random() - 0.5) * 0.03;
+                price = Math.floor(price * (1 + changePercent));
+                
+                // 确保价格在指定区间内
+                price = Math.max(priceRanges[type].min, Math.min(price, priceRanges[type].max));
+                history.push(price);
+            }
+            
+            return history;
+        }
+        
+        // 初始化所有产品的价格历史
+        function initPriceHistory() {
+            // 先尝试从本地存储加载数据
+            const loaded = loadFromLocalStorage();
+            
+            // 如果没有本地数据，则生成新数据
+            if (!loaded) {
+                for (const type in priceHistory) {
+                    priceHistory[type] = generatePriceHistory(type);
+                }
+                // 保存初始数据到本地存储
+                saveToLocalStorage();
+            }
+        }
+        
+        // 更新单个产品价格
+        function updatePrice(type) {
+            const history = priceHistory[type];
+            const lastPrice = history[history.length - 1];
+            const range = priceRanges[type];
+            
+            // 生成-1.5%到1.5%的随机波动
+            const changePercent = (Math.random() - 0.5) * 0.03;
+            let newPrice = Math.floor(lastPrice * (1 + changePercent));
+            
+            // 确保价格在指定区间内
+            newPrice = Math.max(range.min, Math.min(newPrice, range.max));
+            
+            // 更新历史记录，保持12个数据点
+            history.push(newPrice);
+            if (history.length > 12) {
+                history.shift();
+            }
+            
+            return {
+                newPrice,
+                oldPrice: lastPrice,
+                changePercent: ((newPrice - lastPrice) / lastPrice) * 100
+            };
+        }
+        
+        // 自动更新所有产品价格
+        function autoUpdateAllPrices() {
+            const updates = {
+                grape: updatePrice('grape'),
+                wine: updatePrice('wine'),
+                hunger: updatePrice('hunger'),
+                thirst: updatePrice('thirst')
+            };
+            
+            // 更新页面显示
+            for (const type in updates) {
+                const data = updates[type];
+                const priceElement = document.getElementById(`${type}-price`);
+                const changeElement = document.getElementById(`${type}-change`);
+                
+                // 保存旧价格用于动画效果
+                const oldPrice = parseInt(priceElement.textContent);
+                
+                // 更新价格显示
+                priceElement.textContent = data.newPrice;
+                
+                // 更新价格变化百分比和样式
+                const changeIcon = data.changePercent >= 0 ? 
+                    '<i class="fa fa-caret-up text-success"></i>' : 
+                    '<i class="fa fa-caret-down text-danger"></i>';
+                    
+                const changeText = `${changeIcon} ${Math.abs(data.changePercent).toFixed(1)}%`;
+                changeElement.innerHTML = changeText;
+                
+                // 添加价格变动动画
+                if (data.newPrice > oldPrice) {
+                    priceElement.classList.add('price-up');
+                    setTimeout(() => priceElement.classList.remove('price-up'), 1500);
+                } else if (data.newPrice < oldPrice) {
+                    priceElement.classList.add('price-down');
+                    setTimeout(() => priceElement.classList.remove('price-down'), 1500);
+                }
+                
+                // 更新图表
+                updateSingleChart(type);
+            }
+            
+            // 更新趋势分析图表
+            updateTrendCharts();
+            
+            // 更新上次更新时间
+            document.getElementById('last-update').textContent = new Date().toLocaleString();
+            
+            // 保存更新后的数据到本地存储
+            saveToLocalStorage();
+            
+            // 显示更新通知
+            showUpdateNotification();
+            
+            // 头部闪烁提示
+            highlightHeader();
+        }
+        
+        // 显示价格更新通知
+        function showUpdateNotification() {
+            const notification = document.getElementById('update-notification');
+            notification.classList.add('update-toast');
+            
+            // 重置动画以便下次显示
+            setTimeout(() => {
+                notification.classList.remove('update-toast');
+            }, 4000);
+        }
+        
+        // 头部闪烁提示
+        function highlightHeader() {
+            const header = document.getElementById('main-header');
+            header.classList.add('bg-primary/10');
+            
+            setTimeout(() => {
+                header.classList.remove('bg-primary/10');
+            }, 2000);
+        }
+        
+        // 初始化所有图表
+        function initCharts() {
+            // 初始化单个产品图表
+            for (const type in priceHistory) {
+                initSingleChart(type);
+            }
+            
+            // 初始化趋势分析图表
+            initTrendCharts();
+        }
+        
+        // 初始化单个产品图表
+        function initSingleChart(type) {
+            const ctx = document.getElementById(`${type}-chart`).getContext('2d');
+            const labels = Array(priceHistory[type].length).fill('');
+            
+            // 创建图表实例
+            window[`${type}Chart`] = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: priceHistory[type],
+                        borderColor: '#E67E22',
+                        backgroundColor: 'rgba(230, 126, 34, 0.1)',
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            enabled: true,
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.raw} 美元`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { display: false },
+                        y: { 
+                            display: false,
+                            min: Math.floor(getMinPrice(type) * 0.95),
+                            max: Math.ceil(getMaxPrice(type) * 1.05)
+                        }
+                    },
+                    animation: {
+                        duration: 1000
+                    }
+                }
+            });
+        }
+        
+        // 初始化趋势分析图表
+        function initTrendCharts() {
+            // 葡萄园产业趋势图
+            const vineyardCtx = document.getElementById('vineyard-trend-chart').getContext('2d');
+            window.vineyardChart = new Chart(vineyardCtx, {
+                type: 'line',
+                data: {
+                    labels: Array(12).fill(''),
+                    datasets: [
+                        {
+                            label: '葡萄',
+                            data: priceHistory.grape,
+                            borderColor: '#E67E22',
+                            backgroundColor: 'rgba(230, 126, 34, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.4,
+                            fill: false
+                        },
+                        {
+                            label: '葡萄酒',
+                            data: priceHistory.wine,
+                            borderColor: '#D35400',
+                            backgroundColor: 'rgba(211, 84, 0, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.4,
+                            fill: false
+                        }
+                    ]
+                },
+                options: getTrendChartOptions('葡萄园产业价格 (美元)')
+            });
+            
+            // 餐饮产业趋势图
+            const foodCtx = document.getElementById('food-trend-chart').getContext('2d');
+            window.foodChart = new Chart(foodCtx, {
+                type: 'line',
+                data: {
+                    labels: Array(12).fill(''),
+                    datasets: [
+                        {
+                            label: '饥饿类',
+                            data: priceHistory.hunger,
+                            borderColor: '#10B981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.4,
+                            fill: false
+                        },
+                        {
+                            label: '饥渴类',
+                            data: priceHistory.thirst,
+                            borderColor: '#3B82F6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.4,
+                            fill: false
+                        }
+                    ]
+                },
+                options: getTrendChartOptions('餐饮产业价格 (美元)')
+            });
+        }
+        
+        // 获取趋势图表配置
+        function getTrendChartOptions(title) {
+            return {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { 
+                        position: 'top',
+                        labels: {
+                            boxWidth: 12,
+                            font: {
+                                size: 11
+                            }
+                        }
+                    },
+                    title: {
+                        display: false
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false
+                    }
+                },
+                scales: {
+                    x: { 
+                        display: false
+                    },
+                    y: { 
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        },
+                        ticks: {
+                            font: {
+                                size: 10
+                            }
+                        }
+                    }
+                },
+                animation: {
+                    duration: 1000
+                }
+            };
+        }
+        
+        // 更新单个产品图表
+        function updateSingleChart(type) {
+            const chart = window[`${type}Chart`];
+            chart.data.datasets[0].data = priceHistory[type];
+            
+            // 调整Y轴范围
+            chart.options.scales.y.min = Math.floor(getMinPrice(type) * 0.95);
+            chart.options.scales.y.max = Math.ceil(getMaxPrice(type) * 1.05);
+            
+            chart.update();
+        }
+        
+        // 更新趋势分析图表
+        function updateTrendCharts() {
+            // 更新葡萄园产业趋势图
+            window.vineyardChart.data.datasets[0].data = priceHistory.grape;
+            window.vineyardChart.data.datasets[1].data = priceHistory.wine;
+            window.vineyardChart.update();
+            
+            // 更新餐饮产业趋势图
+            window.foodChart.data.datasets[0].data = priceHistory.hunger;
+            window.foodChart.data.datasets[1].data = priceHistory.thirst;
+            window.foodChart.update();
+        }
+        
+        // 获取价格历史中的最低值
+        function getMinPrice(type) {
+            return Math.min(...priceHistory[type]);
+        }
+        
+        // 获取价格历史中的最高值
+        function getMaxPrice(type) {
+            return Math.max(...priceHistory[type]);
+        }
+        
+        // 更新下次更新倒计时
+        function updateCountdown() {
+            const now = new Date();
+            let hours = now.getHours();
+            let minutes = now.getMinutes();
+            let seconds = now.getSeconds();
+            
+            // 计算距离下次12点或0点的时间（12小时更新一次）
+            const nextUpdateHour = hours < 12 ? 12 : 24;
+            let hoursLeft = nextUpdateHour - hours - 1;
+            let minutesLeft = 59 - minutes;
+            let secondsLeft = 60 - seconds;
+            
+            // 格式化时间显示
+            const formatTime = (num) => num.toString().padStart(2, '0');
+            document.getElementById('next-update').textContent = 
+                `${formatTime(hoursLeft)}:${formatTime(minutesLeft)}:${formatTime(secondsLeft)}`;
+        }
+        
+        // 初始化页面
+        function initPage() {
+            // 初始化价格历史数据
+            initPriceHistory();
+            
+            // 初始化图表
+            initCharts();
+            
+            // 设置初始价格显示
+            document.getElementById('grape-price').textContent = priceHistory.grape[11];
+            document.getElementById('wine-price').textContent = priceHistory.wine[11];
+            document.getElementById('hunger-price').textContent = priceHistory.hunger[11];
+            document.getElementById('thirst-price').textContent = priceHistory.thirst[11];
+            
+            // 初始化并启动北京时间更新（每秒更新一次）
+            updateBeijingTime();
+            setInterval(updateBeijingTime, 1000);
+            
+            // 启动倒计时更新
+            updateCountdown();
+            setInterval(updateCountdown, 1000);
+            
+            // 设置自动更新（每12小时一次）
+            setInterval(autoUpdateAllPrices, 10000);
+        }
+        
+        // 页面加载完成后初始化
+        window.addEventListener('DOMContentLoaded', initPage);
+    </script>
+
+
+    </body></html>
